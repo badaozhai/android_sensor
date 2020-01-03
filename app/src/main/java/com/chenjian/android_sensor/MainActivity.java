@@ -21,17 +21,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private TextView ms_sensor;
 
-    private SensorManager sm;
+    private SensorManager sm ;
 
     private TextView ms_x,ms_y,ms_z;
 
     private Sensor mSensorOrientation;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         sm = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
         ms_sensor = (TextView) findViewById(R.id.ms_sensor);
 
         List<Sensor> allSensors = sm.getSensorList(Sensor.TYPE_ALL);
@@ -77,13 +79,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         // 获取方向传感器
         // TYPE_ORIENTATION     3
-//        mSensorOrientation = sm.getDefaultSensor(Sensor.TYPE_ORIENTATION);
+        mSensorOrientation = sm.getDefaultSensor(Sensor.TYPE_ORIENTATION);
 //        //注册数值变化监听器
 //        sm.registerListener(this, mSensorOrientation,SensorManager.SENSOR_DELAY_UI);
 
         // 获取加速度传感器
         // TYPE_ACCELEROMETER       1
-        mSensorOrientation = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+//        mSensorOrientation = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+
+        //陀螺仪传感器的类型是
+        // Sensor.TYPE_GYROSCOPE      4
+//        mSensorOrientation = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 
         //注册数值变化监听器
         sm.registerListener(this, mSensorOrientation,SensorManager.SENSOR_DELAY_UI);
@@ -93,12 +99,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         ms_z = (TextView) findViewById(R.id.ms_z);
 
     }
-    private int step = 0;   //步数
-    private double oriValue = 0;  //原始值
-    private double lstValue = 0;  //上次的值
-    private double curValue = 0;  //当前值
-    private boolean motiveState = true;   //是否处于运动状态
-    private boolean processState = false;   //标记当前是否已经在计步
+
     @RequiresApi(api = Build.VERSION_CODES.KITKAT_WATCH)
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -114,53 +115,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         long timestamp = event.timestamp;
         Log.v(TAG,"时间戳:"+timestamp);
 
+        float[] fArr5 = new float[9];
+        float[] fArr6 = new float[3];
+        SensorManager.getOrientation(fArr5, fArr6);
 
         // 以及传感器记录的新的数据。
-        Log.v(TAG,"方位角：" + (float) (Math.round(event.values[0] * 100)) / 100);
-        ms_x.setText("方位角：" + (float) (Math.round(event.values[0] * 100)) / 100);
+        Log.v(TAG,"值1：" + (float) (Math.round(event.values[0] * 100)) / 100);
+        ms_x.setText("值1：" + (float) (Math.round(event.values[0] * 100)) / 100);
 
-        Log.v(TAG,"倾斜角：" + (float) (Math.round(event.values[1] * 100)) / 100);
-        ms_y.setText("倾斜角：" + (float) (Math.round(event.values[1] * 100)) / 100);
+        Log.v(TAG,"值2：" + (float) (Math.round(event.values[1] * 100)) / 100);
+        ms_y.setText("值2：" + (float) (Math.round(event.values[1] * 100)) / 100);
 
-        Log.v(TAG,"滚动角：" + (float) (Math.round(event.values[2] * 100)) / 100);
-        ms_z.setText("滚动角：" + (float) (Math.round(event.values[2] * 100)) / 100);
+        Log.v(TAG,"值3：" + (float) (Math.round(event.values[2] * 100)) / 100);
+        ms_z.setText("值3：" + (float) (Math.round(event.values[2] * 100)) / 100);
 
-
-        //设定一个精度范围
-        double range = 1;
-        float[] value = event.values;
-
-        //计算当前的模
-        curValue = magnitude(value[0], value[1], value[2]);
-
-        //向上加速的状态
-        if (motiveState == true) {
-            if (curValue >= lstValue) lstValue = curValue;
-            else {
-                //检测到一次峰值
-                if (Math.abs(curValue - lstValue) > range) {
-                    oriValue = curValue;
-                    motiveState = false;
-                }
-            }
-        }
-        //向下加速的状态
-        if (motiveState == false) {
-            if (curValue <= lstValue) lstValue = curValue;
-            else {
-                if (Math.abs(curValue - lstValue) > range) {
-                    //检测到一次峰值
-                    oriValue = curValue;
-                    if (processState == true) {
-                        step++;  //步数 + 1
-                        if (processState == true) {
-                            Log.v(TAG,step + "");    //读数更新
-                        }
-                    }
-                    motiveState = true;
-                }
-            }
-        }
 
     }
     //向量求模
