@@ -1,5 +1,6 @@
 package com.chenjian.android_sensor;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
@@ -7,6 +8,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
@@ -74,7 +76,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         Log.v(TAG,sb.toString());
 
         // 获取方向传感器
-        mSensorOrientation = sm.getDefaultSensor(Sensor.TYPE_ORIENTATION);
+        // TYPE_ORIENTATION     3
+//        mSensorOrientation = sm.getDefaultSensor(Sensor.TYPE_ORIENTATION);
+//        //注册数值变化监听器
+//        sm.registerListener(this, mSensorOrientation,SensorManager.SENSOR_DELAY_UI);
+
+        // 获取加速度传感器
+        // TYPE_ACCELEROMETER       1
+        mSensorOrientation = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+
         //注册数值变化监听器
         sm.registerListener(this, mSensorOrientation,SensorManager.SENSOR_DELAY_UI);
 
@@ -83,17 +93,89 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         ms_z = (TextView) findViewById(R.id.ms_z);
 
     }
-
+    private int step = 0;   //步数
+    private double oriValue = 0;  //原始值
+    private double lstValue = 0;  //上次的值
+    private double curValue = 0;  //当前值
+    private boolean motiveState = true;   //是否处于运动状态
+    private boolean processState = false;   //标记当前是否已经在计步
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT_WATCH)
     @Override
     public void onSensorChanged(SensorEvent event) {
+
+        //数据的精度
+        int accuracy = event.accuracy;//精度
+        Log.v(TAG,"数据精度:"+accuracy);
+        //产生数据的传感器
+        Sensor ss = event.sensor;
+        Log.v(TAG,"传感器:"+ss.toString());
+        Log.v(TAG,"传感器类型:"+ss.getStringType());
+        // 产生数据时的时间戳
+        long timestamp = event.timestamp;
+        Log.v(TAG,"时间戳:"+timestamp);
+
+
+        // 以及传感器记录的新的数据。
+        Log.v(TAG,"方位角：" + (float) (Math.round(event.values[0] * 100)) / 100);
         ms_x.setText("方位角：" + (float) (Math.round(event.values[0] * 100)) / 100);
+
+        Log.v(TAG,"倾斜角：" + (float) (Math.round(event.values[1] * 100)) / 100);
         ms_y.setText("倾斜角：" + (float) (Math.round(event.values[1] * 100)) / 100);
+
+        Log.v(TAG,"滚动角：" + (float) (Math.round(event.values[2] * 100)) / 100);
         ms_z.setText("滚动角：" + (float) (Math.round(event.values[2] * 100)) / 100);
 
-    }
 
+        //设定一个精度范围
+        double range = 1;
+        float[] value = event.values;
+
+        //计算当前的模
+        curValue = magnitude(value[0], value[1], value[2]);
+
+        //向上加速的状态
+        if (motiveState == true) {
+            if (curValue >= lstValue) lstValue = curValue;
+            else {
+                //检测到一次峰值
+                if (Math.abs(curValue - lstValue) > range) {
+                    oriValue = curValue;
+                    motiveState = false;
+                }
+            }
+        }
+        //向下加速的状态
+        if (motiveState == false) {
+            if (curValue <= lstValue) lstValue = curValue;
+            else {
+                if (Math.abs(curValue - lstValue) > range) {
+                    //检测到一次峰值
+                    oriValue = curValue;
+                    if (processState == true) {
+                        step++;  //步数 + 1
+                        if (processState == true) {
+                            Log.v(TAG,step + "");    //读数更新
+                        }
+                    }
+                    motiveState = true;
+                }
+            }
+        }
+
+    }
+    //向量求模
+    public double magnitude(float x, float y, float z) {
+        double magnitude = 0;
+        magnitude = Math.sqrt(x * x + y * y + z * z);
+        return magnitude;
+    }
     @Override
     public void onAccuracyChanged(Sensor sensor, int i) {
 
+    }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        sm.unregisterListener(this);
     }
 }
