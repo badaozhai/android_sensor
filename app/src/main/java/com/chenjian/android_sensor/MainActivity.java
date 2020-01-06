@@ -4,6 +4,7 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -11,7 +12,11 @@ import android.hardware.SensorManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.View;
 import android.widget.TextView;
+
+import com.chenjian.android_sensor.services.HelloService;
 
 import java.util.List;
 
@@ -145,5 +150,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onDestroy() {
         super.onDestroy();
         sm.unregisterListener(this);
+    }
+    // Method to start the service
+    public void startService(View view) {
+        startService(new Intent(getBaseContext(), HelloService.class));
+    }
+
+    // Method to stop the service
+    public void stopService(View view) {
+        stopService(new Intent(getBaseContext(), HelloService.class));
     }
 }
